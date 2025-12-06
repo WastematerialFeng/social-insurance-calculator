@@ -3,37 +3,50 @@ import { CityExcelRow, SalaryExcelRow, City, Salary } from '@/types'
 
 /**
  * Parse Excel file for cities data
- * Note: In server environment (API routes), File object will be a Buffer
+ * Note: In server environment (API routes), File object might not behave as expected
  */
 export async function parseCitiesExcel(file: File | Buffer): Promise<CityExcelRow[]> {
   try {
     let workbook: XLSX.WorkBook
+    let buffer: Buffer
 
-    // Handle different file types
+    // Convert to Buffer if needed
     if (Buffer.isBuffer(file)) {
-      // Server-side: File comes as a Buffer
-      workbook = XLSX.read(file, { type: 'buffer' })
-      return processCitiesWorkbookSync(workbook)
-    } else if (file instanceof File) {
-      // Client-side: File object (browser)
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          try {
-            const data = new Uint8Array(e.target?.result as ArrayBuffer)
-            workbook = XLSX.read(data, { type: 'array' })
-            const result = processCitiesWorkbookSync(workbook)
-            resolve(result)
-          } catch (error) {
-            reject(error)
-          }
-        }
-        reader.onerror = () => reject(new Error('Failed to read file'))
-        reader.readAsArrayBuffer(file)
-      })
+      buffer = file
     } else {
-      throw new Error('Invalid file type. Expected File or Buffer.')
+      // Handle File object in server environment
+      const fileObj = file as any
+
+      // Try multiple ways to get the buffer
+      if (fileObj.arrayBuffer) {
+        // Modern approach: Use arrayBuffer
+        try {
+          const arrayBuffer = await fileObj.arrayBuffer()
+          buffer = Buffer.from(arrayBuffer)
+        } catch (e) {
+          throw new Error(`Failed to convert File to ArrayBuffer: ${e}`)
+        }
+      } else if (fileObj.buffer) {
+        // Some server environments provide buffer directly
+        buffer = Buffer.from(fileObj.buffer)
+      } else if (fileObj._buffer) {
+        // Some environments store it in _buffer
+        buffer = Buffer.from(fileObj._buffer)
+      } else if (fileObj.stream) {
+        // Read from stream if available
+        const chunks = []
+        for await (const chunk of fileObj.stream()) {
+          chunks.push(chunk)
+        }
+        buffer = Buffer.concat(chunks)
+      } else {
+        throw new Error('Unable to extract buffer from File object. Available properties: ' + Object.keys(fileObj).join(', '))
+      }
     }
+
+    // Parse the workbook from buffer
+    workbook = XLSX.read(buffer, { type: 'buffer' })
+    return processCitiesWorkbookSync(workbook)
   } catch (error) {
     return Promise.reject(error)
   }
@@ -41,37 +54,50 @@ export async function parseCitiesExcel(file: File | Buffer): Promise<CityExcelRo
 
 /**
  * Parse Excel file for salaries data
- * Note: In server environment (API routes), File object will be a Buffer
+ * Note: In server environment (API routes), File object might not behave as expected
  */
 export async function parseSalariesExcel(file: File | Buffer): Promise<SalaryExcelRow[]> {
   try {
     let workbook: XLSX.WorkBook
+    let buffer: Buffer
 
-    // Handle different file types
+    // Convert to Buffer if needed
     if (Buffer.isBuffer(file)) {
-      // Server-side: File comes as a Buffer
-      workbook = XLSX.read(file, { type: 'buffer' })
-      return processSalariesWorkbookSync(workbook)
-    } else if (file instanceof File) {
-      // Client-side: File object (browser)
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          try {
-            const data = new Uint8Array(e.target?.result as ArrayBuffer)
-            workbook = XLSX.read(data, { type: 'array' })
-            const result = processSalariesWorkbookSync(workbook)
-            resolve(result)
-          } catch (error) {
-            reject(error)
-          }
-        }
-        reader.onerror = () => reject(new Error('Failed to read file'))
-        reader.readAsArrayBuffer(file)
-      })
+      buffer = file
     } else {
-      throw new Error('Invalid file type. Expected File or Buffer.')
+      // Handle File object in server environment
+      const fileObj = file as any
+
+      // Try multiple ways to get the buffer
+      if (fileObj.arrayBuffer) {
+        // Modern approach: Use arrayBuffer
+        try {
+          const arrayBuffer = await fileObj.arrayBuffer()
+          buffer = Buffer.from(arrayBuffer)
+        } catch (e) {
+          throw new Error(`Failed to convert File to ArrayBuffer: ${e}`)
+        }
+      } else if (fileObj.buffer) {
+        // Some server environments provide buffer directly
+        buffer = Buffer.from(fileObj.buffer)
+      } else if (fileObj._buffer) {
+        // Some environments store it in _buffer
+        buffer = Buffer.from(fileObj._buffer)
+      } else if (fileObj.stream) {
+        // Read from stream if available
+        const chunks = []
+        for await (const chunk of fileObj.stream()) {
+          chunks.push(chunk)
+        }
+        buffer = Buffer.concat(chunks)
+      } else {
+        throw new Error('Unable to extract buffer from File object. Available properties: ' + Object.keys(fileObj).join(', '))
+      }
     }
+
+    // Parse the workbook from buffer
+    workbook = XLSX.read(buffer, { type: 'buffer' })
+    return processSalariesWorkbookSync(workbook)
   } catch (error) {
     return Promise.reject(error)
   }
