@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseCitiesExcel, parseSalariesExcel, transformCityData, transformSalaryData, validateExcelFile } from '@/lib/excel-parser'
-import { dbOperations } from '@/lib/supabase'
+import { dbOperations, isSupabaseConfigured } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Database is not configured. Please ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.',
+          error: 'SUPABASE_NOT_CONFIGURED'
+        },
+        { status: 503 }
+      )
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     const fileType = formData.get('type') as string // 'cities' or 'salaries'

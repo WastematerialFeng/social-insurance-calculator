@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { dbOperations } from '@/lib/supabase'
+import { dbOperations, isSupabaseConfigured } from '@/lib/supabase'
 import { calculateAllEmployeesInsurance } from '@/lib/calculator'
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Database is not configured. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.',
+          error: 'SUPABASE_NOT_CONFIGURED'
+        },
+        { status: 503 }
+      )
+    }
+
     const body = await request.json()
     const { cityNames, calculationYear } = body
 
@@ -104,6 +116,18 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Database is not configured. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.',
+          error: 'SUPABASE_NOT_CONFIGURED'
+        },
+        { status: 503 }
+      )
+    }
+
     // Get available cities and years for frontend
     const cities = await dbOperations.cities.getAllCities()
     const uniqueCities = [...new Set(cities.map(c => c.city_name))]

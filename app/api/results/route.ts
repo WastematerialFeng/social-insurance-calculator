@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { dbOperations } from '@/lib/supabase'
+import { dbOperations, isSupabaseConfigured } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if Supabase is properly configured
+    if (!isSupabaseConfigured) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Database is not configured. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.',
+          error: 'SUPABASE_NOT_CONFIGURED'
+        },
+        { status: 503 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
