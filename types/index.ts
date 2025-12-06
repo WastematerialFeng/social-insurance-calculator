@@ -19,7 +19,7 @@ export interface Salary {
 }
 
 export interface CalculationResult {
-  id: number;
+  id?: number; // Optional for database insertion
   employee_name: string;
   employee_id: string;
   city_name: string;
