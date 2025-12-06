@@ -1,23 +1,36 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Get environment variables with fallbacks
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+// Get environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Check if we're in development mode with placeholder values
-const isDevelopmentWithPlaceholders =
-  (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) &&
-  (supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder'))
+// Check if all required environment variables are set
+const hasValidEnvironment =
+  supabaseUrl &&
+  supabaseUrl !== 'https://placeholder.supabase.co' &&
+  !supabaseUrl.includes('placeholder') &&
+  supabaseAnonKey &&
+  supabaseAnonKey !== 'placeholder-key' &&
+  !supabaseAnonKey.includes('placeholder') &&
+  supabaseServiceKey &&
+  supabaseServiceKey !== 'placeholder-key' &&
+  !supabaseServiceKey.includes('placeholder')
 
 // Create a single supabase client for interacting with your database
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
+)
 
 // Create a supabase client with admin privileges for server-side operations
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+export const supabaseAdmin = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseServiceKey || 'placeholder-key'
+)
 
 // Export a flag to check if Supabase is properly configured
-export const isSupabaseConfigured = !isDevelopmentWithPlaceholders
+export const isSupabaseConfigured = hasValidEnvironment
 
 // Database helpers
 export const dbOperations = {
