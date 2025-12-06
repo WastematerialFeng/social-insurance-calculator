@@ -1,14 +1,23 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Get environment variables with fallbacks
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
+
+// Check if we're in development mode with placeholder values
+const isDevelopmentWithPlaceholders =
+  (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) &&
+  (supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder'))
 
 // Create a single supabase client for interacting with your database
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Create a supabase client with admin privileges for server-side operations
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+
+// Export a flag to check if Supabase is properly configured
+export const isSupabaseConfigured = !isDevelopmentWithPlaceholders
 
 // Database helpers
 export const dbOperations = {
