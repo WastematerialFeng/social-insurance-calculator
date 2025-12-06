@@ -1,42 +1,38 @@
 import * as XLSX from 'xlsx'
 import { CityExcelRow, SalaryExcelRow, City, Salary } from '@/types'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
 
 /**
- * Parse Excel file for cities data (both File object and file path)
+ * Parse Excel file for cities data
+ * Note: In server environment (API routes), File object will be a Buffer
  */
-export async function parseCitiesExcel(fileOrPath: File | string): Promise<CityExcelRow[]> {
+export async function parseCitiesExcel(file: File | Buffer): Promise<CityExcelRow[]> {
   try {
     let workbook: XLSX.WorkBook
 
-    // Check if input is a File object (browser) or a file path (Node.js)
-    if (typeof fileOrPath === 'string') {
-      // Node.js environment - read from file path
-      const { readFile } = await import('fs/promises')
-      const fileBuffer = await readFile(fileOrPath)
-      workbook = XLSX.read(fileBuffer, { type: 'buffer' })
-
-      // Process the workbook
-      return await new Promise((resolve, reject) => {
-        processCitiesWorkbook(workbook, resolve, reject)
-      })
-    } else {
-      // Browser environment - read from File object
+    // Handle different file types
+    if (Buffer.isBuffer(file)) {
+      // Server-side: File comes as a Buffer
+      workbook = XLSX.read(file, { type: 'buffer' })
+      return processCitiesWorkbookSync(workbook)
+    } else if (file instanceof File) {
+      // Client-side: File object (browser)
       return new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = (e) => {
           try {
             const data = new Uint8Array(e.target?.result as ArrayBuffer)
             workbook = XLSX.read(data, { type: 'array' })
-            processCitiesWorkbook(workbook, resolve, reject)
+            const result = processCitiesWorkbookSync(workbook)
+            resolve(result)
           } catch (error) {
             reject(error)
           }
         }
         reader.onerror = () => reject(new Error('Failed to read file'))
-        reader.readAsArrayBuffer(fileOrPath as File)
+        reader.readAsArrayBuffer(file)
       })
+    } else {
+      throw new Error('Invalid file type. Expected File or Buffer.')
     }
   } catch (error) {
     return Promise.reject(error)
@@ -44,122 +40,140 @@ export async function parseCitiesExcel(fileOrPath: File | string): Promise<CityE
 }
 
 /**
- * Process workbook and extract cities data
+ * Parse Excel file for salaries data
+ * Note: In server environment (API routes), File object will be a Buffer
  */
-function processCitiesWorkbook(workbook: XLSX.WorkBook, resolve: Function, reject: Function) {
+export async function parseSalariesExcel(file: File | Buffer): Promise<SalaryExcelRow[]> {
   try {
-    // Try to find cities worksheet by name or use first worksheet
-    let worksheet = null
-    const possibleNames = ['cities', '城市数据', '城市标准', 'City', 'Cities']
+    let workbook: XLSX.WorkBook
 
-    // First try to find by exact match
-    for (const name of workbook.SheetNames) {
-      if (possibleNames.includes(name)) {
-        worksheet = workbook.Sheets[name]
-        break
-      }
+    // Handle different file types
+    if (Buffer.isBuffer(file)) {
+      // Server-side: File comes as a Buffer
+      workbook = XLSX.read(file, { type: 'buffer' })
+      return processSalariesWorkbookSync(workbook)
+    } else if (file instanceof File) {
+      // Client-side: File object (browser)
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer)
+            workbook = XLSX.read(data, { type: 'array' })
+            const result = processSalariesWorkbookSync(workbook)
+            resolve(result)
+          } catch (error) {
+            reject(error)
+          }
+        }
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsArrayBuffer(file)
+      })
+    } else {
+      throw new Error('Invalid file type. Expected File or Buffer.')
     }
-
-    // If not found, use the first worksheet
-    if (!worksheet) {
-      const worksheetName = workbook.SheetNames[0]
-      worksheet = workbook.Sheets[worksheetName]
-    }
-
-    // Convert to JSON
-    const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[]
-
-    // Validate and transform data
-    const citiesData: CityExcelRow[] = jsonData.map((row, index) => {
-      // Check required fields
-      if (!row.city_name || !row.year || !row.base_min || !row.base_max || !row.rate) {
-        throw new Error(`Row ${index + 1}: Missing required fields. Expected: city_name, year, base_min, base_max, rate`)
-      }
-
-      return {
-        city_name: String(row.city_name),
-        year: String(row.year),
-        base_min: Number(row.base_min),
-        base_max: Number(row.base_max),
-        rate: Number(row.rate)
-      }
-    })
-
-    resolve(citiesData)
   } catch (error) {
-    reject(error)
+    return Promise.reject(error)
   }
 }
 
 /**
- * Parse Excel file for salaries data
+ * Process workbook and extract cities data (synchronous version)
  */
-export function parseSalariesExcel(file: File): Promise<SalaryExcelRow[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
+function processCitiesWorkbookSync(workbook: XLSX.WorkBook): CityExcelRow[] {
+  // Try to find cities worksheet by name or use first worksheet
+  let worksheet = null
+  const possibleNames = ['cities', '城市数据', '城市标准', 'City', 'Cities']
 
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer)
-        const workbook = XLSX.read(data, { type: 'array' })
+  // First try to find by exact match
+  for (const name of workbook.SheetNames) {
+    if (possibleNames.includes(name)) {
+      worksheet = workbook.Sheets[name]
+      break
+    }
+  }
 
-        // Try to find salaries worksheet by name or use second worksheet
-        let worksheet = null
-        const possibleNames = ['salaries', '员工工资', '工资数据', 'Salary', 'Salaries']
+  // If not found, use the first worksheet
+  if (!worksheet) {
+    const worksheetName = workbook.SheetNames[0]
+    worksheet = workbook.Sheets[worksheetName]
+  }
 
-        // First try to find by exact match
-        for (const name of workbook.SheetNames) {
-          if (possibleNames.includes(name)) {
-            worksheet = workbook.Sheets[name]
-            break
-          }
-        }
+  // Convert to JSON
+  const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[]
 
-        // If not found, use the second worksheet (after cities)
-        if (!worksheet && workbook.SheetNames.length > 1) {
-          const worksheetName = workbook.SheetNames[1]
-          worksheet = workbook.Sheets[worksheetName]
-        }
-
-        // If still not found, use the first worksheet
-        if (!worksheet) {
-          const worksheetName = workbook.SheetNames[0]
-          worksheet = workbook.Sheets[worksheetName]
-        }
-
-        // Convert to JSON
-        const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[]
-
-        // Validate and transform data
-        const salariesData: SalaryExcelRow[] = jsonData.map((row, index) => {
-          // Check required fields
-          if (!row.employee_id || !row.employee_name || !row.month || !row.salary_amount) {
-            throw new Error(`Row ${index + 1}: Missing required fields. Expected: employee_id, employee_name, month, salary_amount`)
-          }
-
-          // Validate month format (YYYYMM)
-          const monthStr = String(row.month)
-          if (!/^\d{4}\d{2}$/.test(monthStr)) {
-            throw new Error(`Row ${index + 1}: Invalid month format. Expected YYYYMM (e.g., 202401)`)
-          }
-
-          return {
-            employee_id: String(row.employee_id),
-            employee_name: String(row.employee_name),
-            month: monthStr,
-            salary_amount: Number(row.salary_amount)
-          }
-        })
-
-        resolve(salariesData)
-      } catch (error) {
-        reject(error)
-      }
+  // Validate and transform data
+  const citiesData: CityExcelRow[] = jsonData.map((row, index) => {
+    // Check required fields
+    if (!row.city_name || !row.year || !row.base_min || !row.base_max || !row.rate) {
+      throw new Error(`Row ${index + 1}: Missing required fields. Expected: city_name, year, base_min, base_max, rate`)
     }
 
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsArrayBuffer(file)
+    return {
+      city_name: String(row.city_name),
+      year: String(row.year),
+      base_min: Number(row.base_min),
+      base_max: Number(row.base_max),
+      rate: Number(row.rate)
+    }
   })
+
+  return citiesData
+}
+
+/**
+ * Process workbook and extract salaries data (synchronous version)
+ */
+function processSalariesWorkbookSync(workbook: XLSX.WorkBook): SalaryExcelRow[] {
+  // Try to find salaries worksheet by name or use second worksheet
+  let worksheet = null
+  const possibleNames = ['salaries', '员工工资', '工资数据', 'Salary', 'Salaries']
+
+  // First try to find by exact match
+  for (const name of workbook.SheetNames) {
+    if (possibleNames.includes(name)) {
+      worksheet = workbook.Sheets[name]
+      break
+    }
+  }
+
+  // If not found, use the second worksheet (after cities)
+  if (!worksheet && workbook.SheetNames.length > 1) {
+    const worksheetName = workbook.SheetNames[1]
+    worksheet = workbook.Sheets[worksheetName]
+  }
+
+  // If still not found, use the first worksheet
+  if (!worksheet) {
+    const worksheetName = workbook.SheetNames[0]
+    worksheet = workbook.Sheets[worksheetName]
+  }
+
+  // Convert to JSON
+  const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[]
+
+  // Validate and transform data
+  const salariesData: SalaryExcelRow[] = jsonData.map((row, index) => {
+    // Check required fields
+    if (!row.employee_id || !row.employee_name || !row.month || !row.salary_amount) {
+      throw new Error(`Row ${index + 1}: Missing required fields. Expected: employee_id, employee_name, month, salary_amount`)
+    }
+
+    // Validate month format (YYYYMM)
+    const monthStr = String(row.month)
+    if (!/^\d{4}\d{2}$/.test(monthStr)) {
+      throw new Error(`Row ${index + 1}: Invalid month format. Expected YYYYMM (e.g., 202401)`)
+    }
+
+    return {
+      employee_id: String(row.employee_id),
+      employee_name: String(row.employee_name),
+      month: monthStr,
+      salary_amount: Number(row.salary_amount)
+    }
+  })
+
+  return salariesData
 }
 
 /**
@@ -203,64 +217,4 @@ export function validateExcelFile(file: File): boolean {
   )
 
   return hasValidType || hasValidExtension
-}
-
-/**
- * Generate sample cities Excel template
- */
-export function generateCitiesTemplate(): void {
-  const templateData = [
-    {
-      city_name: '佛山',
-      year: '2024',
-      base_min: 4546,
-      base_max: 26421,
-      rate: 0.014
-    },
-    {
-      city_name: '广州',
-      year: '2024',
-      base_min: 5284,
-      base_max: 26421,
-      rate: 0.014
-    }
-  ]
-
-  const worksheet = XLSX.utils.json_to_sheet(templateData)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Cities')
-
-  XLSX.writeFile(workbook, 'cities_template.xlsx')
-}
-
-/**
- * Generate sample salaries Excel template
- */
-export function generateSalariesTemplate(): void {
-  const templateData = [
-    {
-      employee_id: '0001',
-      employee_name: '张三',
-      month: '202401',
-      salary_amount: 8500
-    },
-    {
-      employee_id: '0001',
-      employee_name: '张三',
-      month: '202402',
-      salary_amount: 8500
-    },
-    {
-      employee_id: '0002',
-      employee_name: '李四',
-      month: '202401',
-      salary_amount: 12000
-    }
-  ]
-
-  const worksheet = XLSX.utils.json_to_sheet(templateData)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Salaries')
-
-  XLSX.writeFile(workbook, 'salaries_template.xlsx')
 }
