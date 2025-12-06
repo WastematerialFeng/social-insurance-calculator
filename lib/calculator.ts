@@ -57,6 +57,7 @@ export function calculateEmployeeInsurance(
   const individualFee = contributionBase * RATE_DISTRIBUTION.individual
 
   return {
+    id: 0, // Will be set by database
     employee_name: employeeSalaries[0].employee_name,
     employee_id: employeeSalaries[0].employee_id,
     city_name: city.city_name,

@@ -16,6 +16,11 @@ export async function parseCitiesExcel(fileOrPath: File | string): Promise<CityE
       const { readFile } = await import('fs/promises')
       const fileBuffer = await readFile(fileOrPath)
       workbook = XLSX.read(fileBuffer, { type: 'buffer' })
+
+      // Process the workbook
+      return await new Promise((resolve, reject) => {
+        processCitiesWorkbook(workbook, resolve, reject)
+      })
     } else {
       // Browser environment - read from File object
       return new Promise((resolve, reject) => {
@@ -31,13 +36,6 @@ export async function parseCitiesExcel(fileOrPath: File | string): Promise<CityE
         }
         reader.onerror = () => reject(new Error('Failed to read file'))
         reader.readAsArrayBuffer(fileOrPath as File)
-      })
-    }
-
-    // For Node.js path
-    if (typeof fileOrPath === 'string') {
-      return await new Promise((resolve, reject) => {
-        processCitiesWorkbook(workbook, resolve, reject)
       })
     }
   } catch (error) {

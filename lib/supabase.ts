@@ -30,8 +30,8 @@ export const dbOperations = {
     async deleteCitiesByYear(year: string) {
       const { error } = await supabaseAdmin
         .from('cities')
-        .eq('year', year)
         .delete()
+        .eq('year', year)
 
       if (error) throw error
     },

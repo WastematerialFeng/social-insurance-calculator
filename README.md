@@ -26,22 +26,25 @@ social-insurance-calculator/
 │   ├── api/               # API 路由
 │   │   ├── upload/        # 文件上传 API
 │   │   ├── calculate/     # 计算逻辑 API
-│   │   └── results/       # 结果查询 API
+│   │   ├── results/       # 结果查询 API
+│   │   └── templates/     # Excel 模板下载 API
 │   ├── upload/            # 上传页面
 │   ├── results/           # 结果页面
 │   ├── page.tsx           # 主页
 │   └── layout.tsx         # 根布局
 ├── components/            # React 组件
 │   ├── ui/               # 基础 UI 组件
-│   ├── upload/           # 上传相关组件
-│   └── results/          # 结果展示组件
+│   └── upload/           # 上传相关组件
 ├── lib/                  # 工具库
 │   ├── supabase.ts       # Supabase 配置
 │   ├── calculator.ts     # 计算逻辑
-│   └── excel-parser.ts   # Excel 解析
+│   ├── excel-parser.ts   # Excel 解析
+│   └── template-generator.ts # Excel 模板生成
 ├── types/                # TypeScript 类型定义
-└── supabase/             # 数据库脚本
-    └── schema.sql        # 数据库结构
+├── scripts/              # 脚本文件
+│   ├── setup-database.sql # 数据库初始化
+│   └── insert-demo-data.js # 演示数据插入
+└── public/               # 静态文件
 ```
 
 ## 快速开始
@@ -70,7 +73,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 ### 4. 初始化数据库
 
-在 Supabase SQL 编辑器中运行 `supabase/schema.sql` 中的 SQL 语句，创建所需的表结构。
+在 Supabase SQL 编辑器中运行 `scripts/setup-database.sql` 中的 SQL 语句，创建所需的表结构。
 
 ### 5. 运行项目
 
@@ -78,7 +81,15 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 npm run dev
 ```
 
-访问 [http://localhost:3000](http://localhost:3000) 查看应用。
+访问 [http://localhost:3001](http://localhost:3001) 查看应用。
+
+### 6. 插入演示数据（可选）
+
+运行以下命令插入演示数据用于测试：
+
+```bash
+node scripts/insert-demo-data.js
+```
 
 ## 使用说明
 

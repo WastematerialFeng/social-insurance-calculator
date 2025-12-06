@@ -169,7 +169,7 @@ export default function UploadPage() {
 
   const downloadTemplate = (type: 'cities' | 'salaries') => {
     const link = document.createElement('a')
-    link.href = `/${type}-template.xlsx`
+    link.href = `/api/templates/${type}`
     link.download = `${type}-template.xlsx`
     link.click()
   }

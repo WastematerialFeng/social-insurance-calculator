@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let data: any[]
+    let data: any[] = []
 
     // Parse Excel based on file type
     if (fileType === 'cities') {
@@ -62,6 +62,11 @@ export async function POST(request: NextRequest) {
 
       // Insert new data
       await dbOperations.salaries.insertSalaries(data)
+    } else {
+      return NextResponse.json(
+        { success: false, message: 'Unsupported file type' },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json({
