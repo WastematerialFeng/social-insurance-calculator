@@ -4,13 +4,27 @@ import { calculateAllEmployeesInsurance } from '@/lib/calculator'
 
 export async function POST(request: NextRequest) {
   try {
+    // Log environment status for debugging
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      hasSupabaseService: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      isConfigured: isSupabaseConfigured
+    })
+
     // Check if Supabase is properly configured
     if (!isSupabaseConfigured) {
+      console.error('Supabase not configured - missing environment variables')
       return NextResponse.json(
         {
           success: false,
-          message: 'Database is not configured. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.',
-          error: 'SUPABASE_NOT_CONFIGURED'
+          message: 'Database is not configured. Please contact administrator.',
+          error: 'SUPABASE_NOT_CONFIGURED',
+          details: {
+            hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+            hasSupabaseAnon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+            hasSupabaseService: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+          }
         },
         { status: 503 }
       )
@@ -35,6 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all salary data
+    console.log('Attempting to fetch salary data...')
     const salaries = await dbOperations.salaries.getAllSalaries()
 
     console.log('Found salaries:', salaries.length)
@@ -46,6 +61,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Log some salary data for debugging
+    console.log('Sample salary data:', salaries.slice(0, 2))
+
     // Clear existing results
     await dbOperations.results.clearAllResults()
 
@@ -53,22 +71,35 @@ export async function POST(request: NextRequest) {
 
     // Calculate for each city
     for (const cityName of cityNames) {
-      // Get city data for the specified year
-      const city = await dbOperations.cities.getCityByNameAndYear(cityName, calculationYear)
+      try {
+        console.log(`Processing city: ${cityName} for year: ${calculationYear}`)
 
-      console.log('Looking for city:', cityName, 'year:', calculationYear)
-      console.log('Found city:', city)
+        // Get city data for the specified year
+        const city = await dbOperations.cities.getCityByNameAndYear(cityName, calculationYear)
 
-      if (!city) {
-        console.warn(`City ${cityName} not found for year ${calculationYear}`)
-        continue
+        console.log('Looking for city:', cityName, 'year:', calculationYear)
+        console.log('Found city:', city)
+
+        if (!city) {
+          console.warn(`City ${cityName} not found for year ${calculationYear}`)
+          continue
+        }
+
+        // Calculate insurance for all employees in this city
+        console.log('Calculating insurance for', salaries.length, 'employees')
+        const results = await calculateAllEmployeesInsurance(salaries, city, calculationYear)
+        console.log('Calculation results:', results.length, 'employees calculated')
+
+        // Log first result for debugging
+        if (results.length > 0) {
+          console.log('Sample calculation result:', results[0])
+        }
+
+        allResults.push(...results)
+      } catch (cityError) {
+        console.error(`Error processing city ${cityName}:`, cityError)
+        // Continue with other cities
       }
-
-      // Calculate insurance for all employees in this city
-      console.log('Calculating insurance for', salaries.length, 'employees')
-      const results = await calculateAllEmployeesInsurance(salaries, city, calculationYear)
-      console.log('Calculation results:', results.length, 'employees calculated')
-      allResults.push(...results)
     }
 
     if (allResults.length === 0) {
@@ -79,7 +110,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert all results into database
+    console.log('Attempting to insert', allResults.length, 'results into database...')
     await dbOperations.results.insertResults(allResults)
+    console.log('Results inserted successfully')
 
     // Calculate summary statistics
     const totalEmployees = allResults.length
