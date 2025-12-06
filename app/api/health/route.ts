@@ -3,7 +3,7 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    const healthStatus = {
+    const healthStatus: any = {
       status: 'ok',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
