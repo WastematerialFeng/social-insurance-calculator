@@ -148,3 +148,28 @@ Excel 文件应包含以下列：
 ## 许可证
 
 MIT License
+
+---
+
+## Git 配置信息（供 Claude 使用）
+
+### GitHub 账户
+- **用户名**: WastematerialFeng
+- **仓库地址**: https://github.com/WastematerialFeng/
+
+### Git 全局配置
+```bash
+git config --global user.name "SocialInsuranceCalculator"
+git config --global user.email "socialinsurance@example.com"
+```
+
+### 代理配置（VPN: OK云加速器）
+- **代理地址**: 127.0.0.1:17890
+- **设置命令**:
+```bash
+git config --global http.proxy http://127.0.0.1:17890
+git config --global https.proxy http://127.0.0.1:17890
+```
+
+### 快速脚本
+运行 `setup-git.bat` 可自动配置以上所有设置
